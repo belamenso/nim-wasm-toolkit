@@ -1,8 +1,6 @@
 import
   options
 
-# TODO tuples or objects? Consistent style.
-
 type
   Version* = int
 
@@ -22,9 +20,9 @@ type
   LocalIdx* = uint32
   LabelIdx* = uint32
 
-  Memarg* = tuple
-    align: uint32
-    offset: uint32
+  Memarg* = object
+    align*: uint32
+    offset*: uint32
   
   Value* = enum
     i32, i64, f32, f64
@@ -310,31 +308,31 @@ type
 
   StartSection* = Option[uint32]
 
-  Element* = tuple
-    idx: uint32
-    expr: Expr
-    init: seq[uint32]
+  Element* = object
+    idx*: uint32
+    expr*: Expr
+    init*: seq[uint32]
 
   ElementSection* = seq[Element]
 
-  Local* = tuple
-    n: uint32
-    valtype: Value
+  Local* = object
+    n*: uint32
+    valtype*: Value
 
-  Function* = tuple
-    locals: seq[Local]
-    expr: Expr
+  Function* = object
+    locals*: seq[Local]
+    expr*: Expr
 
-  Code* = tuple
-    size: uint32
-    code: Function
+  Code* = object
+    size*: uint32
+    code*: Function
 
   CodeSection* = seq[Code]
 
-  Data* = tuple
-    idx: uint32
-    expr: Expr
-    init: seq[uint8]
+  Data* = object
+    idx*: uint32
+    expr*: Expr
+    init*: seq[uint8]
 
   DataSection* = seq[Data]
 

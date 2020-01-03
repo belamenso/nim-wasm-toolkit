@@ -101,7 +101,8 @@ proc parseVersion: int =
 
 proc parseIdx: uint32 = parse_u32()
 
-proc parseMemarg: Memarg = (parse_u32(), parse_u32())
+proc parseMemarg: Memarg =
+  Memarg(align: parse_u32(), offset: parse_u32())
 
 proc parseInstr: Instr =
   let bi = InstructionKind(b)
