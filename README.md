@@ -1,7 +1,7 @@
 # wasm-toolkit
 
 - [ ] Data types
-- [ ] Binary parsing
+- [x] Binary parsing
 - [ ] Text parsing
 - [ ] Text generation
 - [ ] Binary generation
