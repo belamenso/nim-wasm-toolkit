@@ -309,6 +309,13 @@ type
 
   StartSection* = Option[uint32]
 
+  Element* = tuple
+    idx: uint32
+    expr: Expr
+    init: seq[uint32]
+
+  ElementSection* = seq[Element]
+
   Data* = tuple
     idx: uint32
     expr: Expr
@@ -327,6 +334,7 @@ type
     globalSection*: Option[GlobalSection]
     exportSection*: Option[ExportSection]
     startSection*: StartSection
+    elementSection*: Option[ElementSection]
     dataSection*: Option[DataSection]
     customSections*: seq[CustomSection]
 
