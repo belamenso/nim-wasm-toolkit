@@ -291,6 +291,12 @@ type
 
   MemorySection* = seq[Memory]
 
+  GlobalElement* = tuple
+    globaltype: Global
+    expr: Expr
+
+  GlobalSection* = seq[GlobalElement]
+
   ExportDescriptionKind* = enum
     funcIdx=0, tableIdx=1, memIdx=2, globalIdx=3
 
@@ -303,6 +309,7 @@ type
 
   StartSection* = Option[uint32]
 
+  # TODO refactor optional[vector] -> vector
   Module* = object
     version*: Version
     typeSection*: Option[TypeSection]
@@ -310,6 +317,7 @@ type
     functionSection*: Option[FunctionSection]
     tableSection*: Option[TableSection]
     memorySection*: Option[MemorySection]
+    globalSection*: Option[GlobalSection]
     exportSection*: Option[ExportSection]
     startSection*: StartSection
     customSections*: seq[CustomSection]

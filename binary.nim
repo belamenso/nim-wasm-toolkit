@@ -257,6 +257,17 @@ proc parseMemorySection: Option[MemorySection] =
   
   some parseVector(parseMemType)
 
+proc parseGlobalElement: GlobalElement =
+  result.globaltype = parseGlobalType()
+  result.expr = parseExpression()
+
+proc parseGlobalSection: Option[GlobalSection] =
+  if b != 6: return
+  skip @[6]
+  let size = parse_u32()
+  
+  some parseVector(parseGlobalElement)
+
 proc parseExport(): Export =
   result.name = parseName()
   assertP b in {0,1,2,4}, "Invalid Export Byte"
@@ -295,7 +306,8 @@ proc parseModule(): Module =
   customSections &= parseCustomSections()
   let memorySection = parseMemorySection()
   customsections &= parseCustomSections()
-  # TODO expr -> global saection
+  let globalSection = parseGlobalSection()
+  customsections &= parseCustomSections()
   let exportSection = parseExportSection()
   customsections &= parseCustomSections()
   let startSection = parseStartSection()
@@ -311,6 +323,7 @@ proc parseModule(): Module =
     functionSection: functionSection,
     tableSection: tableSection,
     memorySection: memorySection,
+    globalSection: globalSection,
     exportSection: exportSection,
     startSection: startSection,
     customSections: customSections,
