@@ -33,17 +33,31 @@ proc getBytes(n: uint): seq[uint8] =
     result.add b
     next()
 
-proc parseLeb128U32(): uint32 =
+proc parse_unsigned[T](): T =
   if b shr 7 == 0:
-    result = uint32(b) # TODO
+    result = T(b)
     next()
   else:
-    result = uint32(b) - (1 shl 7)
+    result = T(b) - (1 shl 7)
     next()
-    result += uint32(1 shl 7) * parseLeb128U32()
+    result += T(1 shl 7) * parse_unsigned[T]()
+
+proc parse_signed[T](): T =
+  if T(b) < (1 shl 7):
+    if T(b) < (1 shl 6):
+      T(b)
+    else:
+      T(b) - (1 shl 7)
+  else:
+    T(b) - (1 shl 7) + (1 shl 7) * parse_signed[T]()
+
+proc parse_u32: uint32 = parse_unsigned[uint32]()
+proc parse_u64: uint64 = parse_unsigned[uint64]()
+proc parse_i32: int32 = parse_signed[int32]()
+proc parse_i64: int64 = parse_signed[int64]()
 
 proc parseVector[T](parseElement: proc(): T): seq[T] =
-  let size = parseLeb128U32()
+  let size = parse_u32()
   echo ">>>>>>>>>>>>>>>>>>>>>> size is ", $size
   for i in 1..size:
     result.add parseElement()
@@ -64,13 +78,15 @@ proc parseResultType: Result =
     none(Value)
 
 proc parseBlockType: Block = parseResultType()
-proc parseU32(): int32 = # TODO ???
+
+proc parseVersion: int =
   let s = getBytes(4)
-  littleEndian32(addr result, unsafeAddr s[0])
+  for i in countdown(3, 0):
+    result = (1 shl 8) * result + int(s[i])
 
-proc parseIdx: uint32 = parseLeb128U32()
+proc parseIdx: uint32 = parse_u32()
 
-proc parseMemarg: Memarg = (parseLeb128U32(), parseLeb128U32())
+proc parseMemarg: Memarg = (parse_u32(), parse_u32())
 
 proc parseInstr: Instr =
   let bi = InstructionKind(b)
@@ -99,24 +115,31 @@ proc parseInstr: Instr =
       result.ifFalse.add parseInstr()
     skip @[0x0b]
   of br, br_if:
-    result.idx = parseLeb128U32()
+    result.idx = parse_u32()
   of br_table:
-    assert false # TODO
+    result.labels = parseVector(parseIdx)
+    result.labelidx = parseIdx()
   of call:
-    result.funcidx = parseLeb128U32()
+    result.funcidx = parse_u32()
   of call_indirect:
-    result.typeidx = parseLeb128U32()
+    result.typeidx = parse_u32()
     skip @[0x00]
   of local_get, local_set, local_tee:
-    result.localidx = parseLeb128U32()
+    result.localidx = parse_u32()
   of global_get, global_set:
-    result.globalidx = parseLeb128U32()
+    result.globalidx = parse_u32()
   of InstructionKind(0x28)..InstructionKind(0x3e):
     result.memarg = parseMemarg()
   of memory_size, memory_grow:
     skip @[0x00]
-  of i32_const..f64_const:
-    assert false # TODO integer/fp encodings
+  of i32_const:
+    result.i32_val = parse_i32()
+  of i64_const:
+    result.i64_val = parse_i64()
+  of f32_const:
+    assert false # TODO
+  of f64_const:
+    assert false # TODO
 
 proc parseExpression: Expr =
   while b != 0x0b:
@@ -124,10 +147,9 @@ proc parseExpression: Expr =
   skip @[0x0b]
 
 proc parseCustomSection(): CustomSection =
-  echo "CUUUUUUSSSTTTTOOOMMMM"
   skip @[0]
-  let size = parseLeb128U32()
-  let strSize = parseLeb128U32()
+  let size = parse_u32()
+  let strSize = parse_u32()
   assertP strSize <= size
   var name = newString(strSize)
   for i in 1..strSize:
@@ -151,7 +173,7 @@ proc parseTypeSection(): Option[TypeSection] =
   if b != 1: return
 
   skip @[1]
-  let size = parseLeb128U32()
+  let size = parse_u32()
   some parseVector(parseFunctionType)
 
 proc parseName(): string =
@@ -162,9 +184,9 @@ proc parseName(): string =
 proc parseLimits(): Limits =
   case b:
   of 0x00: # TODO
-    result = Limits( min: parseLeb128U32(), max: none(uint32) )
+    result = Limits( min: parse_u32(), max: none(uint32) )
   of 0x01:
-    result = Limits( min: parseLeb128U32(), max: some(parseLeb128U32()) )
+    result = Limits( min: parse_u32(), max: some(parse_u32()) )
   else:
     assertP false, "Invalid limit byte"
 
@@ -207,14 +229,14 @@ proc parseImport():Import =
 proc parseImportSection(): Option[ImportSection] =
   if b != 2: return
   skip @[2]
-  let size = parseLeb128U32()
+  let size = parse_u32()
   some parseVector(parseImport)
 
 proc parseFunctionSection(): Option[FunctionSection] =
   if b != 3: return
 
   skip @[3]
-  let size = parseLeb128U32()
+  let size = parse_u32()
 
   let indices = parseVector(parseIdx)
   if indices.len != 0:
@@ -224,14 +246,14 @@ proc parseFunctionSection(): Option[FunctionSection] =
 proc parseTableSection(): Option[TableSection] =
   if b != 4: return
   skip @[4]
-  let size = parseLeb128U32()
+  let size = parse_u32()
   
   some parseVector(parseTableType)
 
 proc parseMemorySection: Option[MemorySection] =
   if b != 5: return
   skip @[5]
-  let size = parseLeb128U32()
+  let size = parse_u32()
   
   some parseVector(parseMemType)
 
@@ -239,28 +261,28 @@ proc parseExport(): Export =
   result.name = parseName()
   assertP b in {0,1,2,4}, "Invalid Export Byte"
   result.idxType = ExportDescriptionKind(int(b))
-  result.idx = parseLeb128U32()
+  result.idx = parse_u32()
 
 proc parseExportSection(): Option[ExportSection] =
   if b != 7: return
   skip @[7]
-  let size = parseLeb128U32()
+  let size = parse_u32()
 
   some parseVector(parseExport)
 
 proc parseStartSection(): StartSection =
   if b != 8: return
   skip @[8]
-  let size = parseLeb128U32()
+  let size = parse_u32()
 
-  some parseLeb128U32()
+  some parse_u32()
 
 proc parseModule(): Module =
   var customSections: seq[CustomSection]
 
   skip @[0]
   skip @['a','s','m'].map(c => c.ord)
-  let v: Version = parseU32()
+  let v: Version = parseVersion()
 
   customSections &= parseCustomSections()
   let typeSection  = parseTypeSection()

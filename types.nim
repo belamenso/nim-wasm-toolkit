@@ -227,7 +227,7 @@ type
       idx*: uint32
     of br_table: # XXX
       labels*: seq[uint32]
-      label_idx*: uint32
+      labelidx*: uint32
     of call:
       funcidx*: uint32
     of call_indirect:
