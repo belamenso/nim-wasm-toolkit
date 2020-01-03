@@ -1,6 +1,8 @@
 import
   options
 
+# TODO tuples or objects? Consistent style.
+
 type
   Version* = int
 
@@ -249,7 +251,7 @@ type
 
   Expr* = seq[Instr]
 
-  Function* = object
+  FunctionT* = object
     domain*: seq[Value]
     image*: seq[Value]
 
@@ -264,10 +266,9 @@ type
     mut*: Mut
     valtype*: Value
 
-  External* = Function | Table | Memory | Global
+  External* = FunctionT | Table | Memory | Global
 
-  TypeSection* = seq[Function]
-
+  TypeSection* = seq[FunctionT] 
   TableSection* = seq[Table]
 
   ImportDescriptionKind* = enum
@@ -316,6 +317,20 @@ type
 
   ElementSection* = seq[Element]
 
+  Local* = tuple
+    n: uint32
+    valtype: Value
+
+  Function* = tuple
+    locals: seq[Local]
+    expr: Expr
+
+  Code* = tuple
+    size: uint32
+    code: Function
+
+  CodeSection* = seq[Code]
+
   Data* = tuple
     idx: uint32
     expr: Expr
@@ -335,6 +350,7 @@ type
     exportSection*: Option[ExportSection]
     startSection*: StartSection
     elementSection*: Option[ElementSection]
+    codeSection*: Option[CodeSection]
     dataSection*: Option[DataSection]
     customSections*: seq[CustomSection]
 

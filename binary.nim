@@ -34,7 +34,7 @@ proc getBytes(n: uint): seq[uint8] =
     next()
 
 proc parse_unsigned[T](): T =
-  if b shr 7 == 0:
+  if (b shr 7) == 0:
     result = T(b)
     next()
   else:
@@ -43,13 +43,15 @@ proc parse_unsigned[T](): T =
     result += T(1 shl 7) * parse_unsigned[T]()
 
 proc parse_signed[T](): T =
-  if T(b) < (1 shl 7):
-    if T(b) < (1 shl 6):
-      T(b)
+  let lb = T(b)
+  next()
+  if lb < (1 shl 7):
+    if lb < (1 shl 6):
+      lb
     else:
-      T(b) - (1 shl 7)
+      lb - (1 shl 7)
   else:
-    T(b) - (1 shl 7) + (1 shl 7) * parse_signed[T]()
+    lb - (1 shl 7) + (1 shl 7) * parse_signed[T]()
 
 proc parse_u32: uint32 = parse_unsigned[uint32]()
 proc parse_u64: uint64 = parse_unsigned[uint64]()
@@ -58,7 +60,6 @@ proc parse_i64: int64 = parse_signed[int64]()
 
 proc parseVector[T](parseElement: proc(): T): seq[T] =
   let size = parse_u32()
-  echo ">>>>>>>>>>>>>>>>>>>>>> size is ", $size
   for i in 1..size:
     result.add parseElement()
 
@@ -92,7 +93,7 @@ proc parseInstr: Instr =
   let bi = InstructionKind(b)
   next()
 
-  result.kind = bi
+  result = Instr(kind: bi)
 
   case bi:
   of InstructionKind(0x45)..InstructionKind(0xbf), drop, select, unreachable, nop, returnI:
@@ -163,9 +164,9 @@ proc parseCustomSections(): seq[CustomSection] =
   while not eof and b == 0:
     result.add parseCustomSection()
 
-proc parseFunctionType(): Function =
+proc parseFunctionType(): FunctionT =
   skip @[0x60]
-  Function(
+  FunctionT(
     domain: parseVector(parseValueType),
     image: parseVector(parseValueType))
 
@@ -272,6 +273,7 @@ proc parseExport(): Export =
   result.name = parseName()
   assertP b in {0,1,2,4}, "Invalid Export Byte"
   result.idxType = ExportDescriptionKind(int(b))
+  next()
   result.idx = parse_u32()
 
 proc parseExportSection(): Option[ExportSection] =
@@ -299,6 +301,29 @@ proc parseElementSection: Option[ElementSection] =
   let size = parse_u32()
 
   some parseVector(parseElement)
+
+proc parseLocal: Local =
+  result.n = parse_u32()
+  result.valtype = parseValueType()
+
+proc parseFunction: Function =
+  result.locals = parseVector(parseLocal)
+  result.expr = parseExpression()
+
+proc parseCode: Code =
+  result.size = parse_u32()
+  result.code = parseFunction()
+
+proc parseCodeSection: Option[CodeSection] =
+  echo "CCCCCCOOOOOOOOODDDDDDDDDEEEEEEEEE"
+  if b != 10:
+    echo "wtd-------------------, b is ", $b
+  if b != 10: return
+  echo "CCCCCCOOOOOOOOODDDDDDDDDEEEEEEEEE"
+  skip @[10]
+  let size = parse_u32()
+
+  some parseVector(parseCode)
 
 proc parseData: Data =
   result.idx = parse_u32()
@@ -340,8 +365,8 @@ proc parseModule(): Module =
   customsections &= parseCustomSections()
   let elementSection = parseElementSection()
   customsections &= parseCustomSections()
-  # TODO expr -> element section
-  # TODO expr -> code section
+  let codeSection = parseCodeSection()
+  customsections &= parseCustomSections()
   let dataSection = parseDataSection()
   customsections &= parseCustomSections()
 
@@ -356,6 +381,7 @@ proc parseModule(): Module =
     exportSection: exportSection,
     startSection: startSection,
     elementSection: elementSection,
+    codeSection: codeSection,
     dataSection: dataSection,
     customSections: customSections,
   )
