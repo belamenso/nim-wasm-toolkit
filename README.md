@@ -1,12 +1,11 @@
 # wasm-toolkit
 
-- [ ] Data types
+- [x] Data types
 - [x] Binary parsing
 - [ ] Text parsing
 - [ ] Text generation
-- [ ] Binary generation
-- [ ] Module info
+- [ ] Binary generation (**in progress**)
+- [ ] Module info (**in progress**)
 - [ ] Interpretation
 - [ ] Validation
 - [ ] Customization
-
