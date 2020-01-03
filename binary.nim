@@ -80,10 +80,10 @@ proc parseValueType(): Value =
 
 proc parseResultType: Result =
   if b in {0x7f, 0x7e, 0x7d, 0x7c}:
-    parseValueType()
+    some parseValueType()
   else:
     assertP b == 0x40, "invlid result byte"
-    return EmpryResult
+    none(Value)
 
 proc parseBlockType: Block = parseResultType()
 
