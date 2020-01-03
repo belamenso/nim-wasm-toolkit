@@ -12,10 +12,9 @@ var
 proc next() =
   try:
     b = fs.readUint8()
-    echo "B is ", $b
   except:
     b = 0
-    eof = true
+    eof = true # TODO better eof handling needed?
 
 proc assertP(test: bool, str="") =
   if str.len != 0:
@@ -185,12 +184,12 @@ proc parseFunctionType(): FunctionT =
     domain: parseVector(parseValueType),
     image: parseVector(parseValueType))
 
-proc parseTypeSection(): Option[TypeSection] =
+proc parseTypeSection(): TypeSection =
   if b != 1: return
 
   skip @[1]
   let size = parse_u32()
-  some parseVector(parseFunctionType)
+  parseVector(parseFunctionType)
 
 proc parseName(): string =
   parseVector(proc(): char =
@@ -242,13 +241,13 @@ proc parseImport():Import =
     importdesc: importdesc,
   )
 
-proc parseImportSection(): Option[ImportSection] =
+proc parseImportSection(): ImportSection =
   if b != 2: return
   skip @[2]
   let size = parse_u32()
-  some parseVector(parseImport)
+  parseVector(parseImport)
 
-proc parseFunctionSection(): Option[FunctionSection] =
+proc parseFunctionSection(): FunctionSection =
   if b != 3: return
 
   skip @[3]
@@ -256,33 +255,32 @@ proc parseFunctionSection(): Option[FunctionSection] =
 
   let indices = parseVector(parseIdx)
   if indices.len != 0:
-    result = some indices
-  echo "size was ", $size, " and indices are ", repr(indices)
+    result = indices
 
-proc parseTableSection(): Option[TableSection] =
+proc parseTableSection(): TableSection =
   if b != 4: return
   skip @[4]
   let size = parse_u32()
   
-  some parseVector(parseTableType)
+  parseVector(parseTableType)
 
-proc parseMemorySection: Option[MemorySection] =
+proc parseMemorySection: MemorySection =
   if b != 5: return
   skip @[5]
   let size = parse_u32()
   
-  some parseVector(parseMemType)
+  parseVector(parseMemType)
 
 proc parseGlobalElement: GlobalElement =
   result.globaltype = parseGlobalType()
   result.expr = parseExpression()
 
-proc parseGlobalSection: Option[GlobalSection] =
+proc parseGlobalSection: GlobalSection =
   if b != 6: return
   skip @[6]
   let size = parse_u32()
   
-  some parseVector(parseGlobalElement)
+  parseVector(parseGlobalElement)
 
 proc parseExport(): Export =
   result.name = parseName()
@@ -291,12 +289,12 @@ proc parseExport(): Export =
   next()
   result.idx = parse_u32()
 
-proc parseExportSection(): Option[ExportSection] =
+proc parseExportSection(): ExportSection =
   if b != 7: return
   skip @[7]
   let size = parse_u32()
 
-  some parseVector(parseExport)
+  parseVector(parseExport)
 
 proc parseStartSection: StartSection =
   if b != 8: return
@@ -310,12 +308,12 @@ proc parseElement: Element =
   result.expr = parseExpression()
   result.init = parseVector(parseIdx)
 
-proc parseElementSection: Option[ElementSection] =
+proc parseElementSection: ElementSection =
   if b != 9: return
   skip @[9]
   let size = parse_u32()
 
-  some parseVector(parseElement)
+  parseVector(parseElement)
 
 proc parseLocal: Local =
   result.n = parse_u32()
@@ -329,16 +327,14 @@ proc parseCode: Code =
   result.size = parse_u32()
   result.code = parseFunction()
 
-proc parseCodeSection: Option[CodeSection] =
-  echo "CCCCCCOOOOOOOOODDDDDDDDDEEEEEEEEE"
+proc parseCodeSection: CodeSection =
   if b != 10:
     echo "wtd-------------------, b is ", $b
   if b != 10: return
-  echo "CCCCCCOOOOOOOOODDDDDDDDDEEEEEEEEE"
   skip @[10]
   let size = parse_u32()
 
-  some parseVector(parseCode)
+  parseVector(parseCode)
 
 proc parseData: Data =
   result.idx = parse_u32()
@@ -347,12 +343,12 @@ proc parseData: Data =
   let n = parse_u32()
   result.init = getBytes(n)
 
-proc parseDataSection: Option[DataSection] =
+proc parseDataSection: DataSection =
   if b != 11: return
   skip @[11]
   let size = parse_u32()
 
-  some parseVector(parseData)
+  parseVector(parseData)
 
 proc parseModule(): Module =
   var customSections: seq[CustomSection]

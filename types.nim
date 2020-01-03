@@ -339,16 +339,16 @@ type
   # TODO refactor optional[vector] -> vector
   Module* = object
     version*: Version
-    typeSection*: Option[TypeSection]
-    importSection*: Option[ImportSection]
-    functionSection*: Option[FunctionSection]
-    tableSection*: Option[TableSection]
-    memorySection*: Option[MemorySection]
-    globalSection*: Option[GlobalSection]
-    exportSection*: Option[ExportSection]
+    typeSection*: TypeSection
+    importSection*: ImportSection
+    functionSection*: FunctionSection
+    tableSection*: TableSection
+    memorySection*: MemorySection
+    globalSection*: GlobalSection
+    exportSection*: ExportSection
     startSection*: StartSection
-    elementSection*: Option[ElementSection]
-    codeSection*: Option[CodeSection]
-    dataSection*: Option[DataSection]
+    elementSection*: ElementSection
+    codeSection*: CodeSection
+    dataSection*: DataSection
     customSections*: seq[CustomSection]
 
