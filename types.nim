@@ -218,37 +218,36 @@ type
     of unreachable, nop, returnI, drop, select:
       discard
     of blockI, loop:
-      blockType: Block
-      instructions: seq[Instr]
+      blockType*: Block
+      instructions*: seq[Instr]
     of ifI:
-      ifTrue: seq[Instr]
-      ifFalse: seq[Instr]
+      ifTrue*: seq[Instr]
+      ifFalse*: seq[Instr]
     of br, br_if:
-      idx: uint32
+      idx*: uint32
     of br_table: # XXX
-      labels: seq[uint32]
-      label_idx: uint32
+      labels*: seq[uint32]
+      label_idx*: uint32
     of call:
-      funcidx: uint32
+      funcidx*: uint32
     of call_indirect:
-      typeidx: uint32
+      typeidx*: uint32
     of local_get, local_set, local_tee:
-      localidx: uint32
+      localidx*: uint32
     of global_get, global_set:
-      globalidx: uint32
+      globalidx*: uint32
     of InstructionKind(0x28)..InstructionKind(0x3e):
-      memarg: Memarg
+      memarg*: Memarg
     of memory_size, memory_grow:
       discard
-    of i32_const: i32_val: int32
-    of i64_const: i64_val: int64
-    of f32_const: f32_val: float32
-    of f64_const: f64_val: float64
+    of i32_const: i32_val*: int32
+    of i64_const: i64_val*: int64
+    of f32_const: f32_val*: float32
+    of f64_const: f64_val*: float64
     of InstructionKind(0x45)..InstructionKind(0xbf):
       discard
 
-  #Instruction = object
-    #case kind: 
+  Expr* = seq[Instr]
 
   Function* = object
     domain*: seq[Value]

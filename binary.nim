@@ -42,28 +42,6 @@ proc parseLeb128U32(): uint32 =
     next()
     result += uint32(1 shl 7) * parseLeb128U32()
 
-proc parseU32(): int32 = # TODO ???
-  let s = getBytes(4)
-  littleEndian32(addr result, unsafeAddr s[0])
-
-proc parseCustomSection(): CustomSection =
-  echo "CUUUUUUSSSTTTTOOOMMMM"
-  skip @[0]
-  let size = parseLeb128U32()
-  let strSize = parseLeb128U32()
-  assertP strSize <= size
-  var name = newString(strSize)
-  for i in 1..strSize:
-    name[i-1] = chr(b)
-    next()
-  result = CustomSection( name: name, len: size )
-  discard getBytes(uint(size - strSize))
-  echo "END CUSTOM with size, strSize, name = ", $size, " ", $strSize, " ", name
-
-proc parseCustomSections(): seq[CustomSection] =
-  while not eof and b == 0:
-    result.add parseCustomSection()
-
 proc parseVector[T](parseElement: proc(): T): seq[T] =
   let size = parseLeb128U32()
   echo ">>>>>>>>>>>>>>>>>>>>>> size is ", $size
@@ -86,6 +64,82 @@ proc parseResultType: Result =
     none(Value)
 
 proc parseBlockType: Block = parseResultType()
+proc parseU32(): int32 = # TODO ???
+  let s = getBytes(4)
+  littleEndian32(addr result, unsafeAddr s[0])
+
+proc parseIdx: uint32 = parseLeb128U32()
+
+proc parseMemarg: Memarg = (parseLeb128U32(), parseLeb128U32())
+
+proc parseInstr: Instr =
+  let bi = InstructionKind(b)
+  next()
+
+  result.kind = bi
+
+  case bi:
+  of InstructionKind(0x45)..InstructionKind(0xbf), drop, select, unreachable, nop, returnI:
+    return
+  of blockI, loop:
+    result.blockType = parseBlockType()
+    var instructions: seq[Instr]
+    while b != 0x0b:
+      result.instructions.add parseInstr()
+    skip @[0x0b]
+  of ifI:
+    result.blockType = parseBlockType()
+    while not b in {0x0b, 0x05}:
+      result.ifTrue.add parseInstr()
+    if b == 0x0b:
+      skip @[0x0b]
+      return
+    skip @[0x05]
+    while b != 0x0b:
+      result.ifFalse.add parseInstr()
+    skip @[0x0b]
+  of br, br_if:
+    result.idx = parseLeb128U32()
+  of br_table:
+    assert false # TODO
+  of call:
+    result.funcidx = parseLeb128U32()
+  of call_indirect:
+    result.typeidx = parseLeb128U32()
+    skip @[0x00]
+  of local_get, local_set, local_tee:
+    result.localidx = parseLeb128U32()
+  of global_get, global_set:
+    result.globalidx = parseLeb128U32()
+  of InstructionKind(0x28)..InstructionKind(0x3e):
+    result.memarg = parseMemarg()
+  of memory_size, memory_grow:
+    skip @[0x00]
+  of i32_const..f64_const:
+    assert false # TODO integer/fp encodings
+
+proc parseExpression: Expr =
+  while b != 0x0b:
+    result.add parseInstr()
+  skip @[0x0b]
+
+proc parseCustomSection(): CustomSection =
+  echo "CUUUUUUSSSTTTTOOOMMMM"
+  skip @[0]
+  let size = parseLeb128U32()
+  let strSize = parseLeb128U32()
+  assertP strSize <= size
+  var name = newString(strSize)
+  for i in 1..strSize:
+    name[i-1] = chr(b)
+    next()
+  result = CustomSection( name: name, len: size )
+  discard getBytes(uint(size - strSize))
+  echo "END CUSTOM with size, strSize, name = ", $size, " ", $strSize, " ", name
+
+proc parseCustomSections(): seq[CustomSection] =
+  while not eof and b == 0:
+    result.add parseCustomSection()
 
 proc parseFunctionType(): Function =
   skip @[0x60]
@@ -104,10 +158,6 @@ proc parseName(): string =
   parseVector(proc(): char =
     result = chr(b)
     next()).join("")
-
-proc parseIdx: uint32 = parseLeb128U32()
-
-proc parseMemarg: Memarg = (parseLeb128U32(), parseLeb128U32())
 
 proc parseLimits(): Limits =
   case b:
