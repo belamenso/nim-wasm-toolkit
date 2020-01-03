@@ -168,7 +168,6 @@ proc parseCustomSection(): CustomSection =
     next()
   result = CustomSection( name: name, len: size )
   discard getBytes(uint(size - strSize))
-  echo "END CUSTOM with size, strSize, name = ", $size, " ", $strSize, " ", name
 
 proc parseCustomSections(): seq[CustomSection] =
   while not eof and b == 0:
@@ -324,8 +323,6 @@ proc parseCode: Code =
   result.code = parseFunction()
 
 proc parseCodeSection: CodeSection =
-  if b != 10:
-    echo "wtd-------------------, b is ", $b
   if b != 10: return
   skip @[10]
   let size = parse_u32()
