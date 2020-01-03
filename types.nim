@@ -25,7 +25,10 @@ type
     offset*: uint32
   
   Value* = enum
-    i32, i64, f32, f64
+    f64 = 0x7c
+    f32 = 0x7d
+    i64 = 0x7e
+    i32 = 0x7f
 
   Result* = Option[Value]
   Block* = Result

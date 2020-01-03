@@ -77,12 +77,8 @@ proc parseVector[T](parseElement: proc(): T): seq[T] =
     result.add parseElement()
 
 proc parseValueType(): Value =
-  case b:
-  of 0x7f: result = i32; next()
-  of 0x7e: result = i64; next()
-  of 0x7d: result = f32; next()
-  of 0x7c: result = f64; next()
-  else: assertP false, "Invalid value type: " & $b
+  result = Value(b)
+  next()
 
 proc parseResultType: Result =
   if b in {0x7f, 0x7e, 0x7d, 0x7c}:
