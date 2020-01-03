@@ -309,6 +309,13 @@ type
 
   StartSection* = Option[uint32]
 
+  Data* = tuple
+    idx: uint32
+    expr: Expr
+    init: seq[uint8]
+
+  DataSection* = seq[Data]
+
   # TODO refactor optional[vector] -> vector
   Module* = object
     version*: Version
@@ -320,5 +327,6 @@ type
     globalSection*: Option[GlobalSection]
     exportSection*: Option[ExportSection]
     startSection*: StartSection
+    dataSection*: Option[DataSection]
     customSections*: seq[CustomSection]
 

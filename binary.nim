@@ -281,12 +281,26 @@ proc parseExportSection(): Option[ExportSection] =
 
   some parseVector(parseExport)
 
-proc parseStartSection(): StartSection =
+proc parseStartSection: StartSection =
   if b != 8: return
   skip @[8]
   let size = parse_u32()
 
   some parse_u32()
+
+proc parseData: Data =
+  result.idx = parse_u32()
+  result.expr = parseExpression()
+
+  let n = parse_u32()
+  result.init = getBytes(n)
+
+proc parseDataSection: Option[DataSection] =
+  if b != 11: return
+  skip @[11]
+  let size = parse_u32()
+
+  some parseVector(parseData)
 
 proc parseModule(): Module =
   var customSections: seq[CustomSection]
@@ -314,7 +328,8 @@ proc parseModule(): Module =
   customsections &= parseCustomSections()
   # TODO expr -> element section
   # TODO expr -> code section
-  # TODO expr -> data section
+  let dataSection = parseDataSection()
+  customsections &= parseCustomSections()
 
   Module(
     version: v,
@@ -326,6 +341,7 @@ proc parseModule(): Module =
     globalSection: globalSection,
     exportSection: exportSection,
     startSection: startSection,
+    dataSection: dataSection,
     customSections: customSections,
   )
 
