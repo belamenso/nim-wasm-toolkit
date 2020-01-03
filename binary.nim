@@ -58,6 +58,20 @@ proc parse_u64: uint64 = parse_unsigned[uint64]()
 proc parse_i32: int32 = parse_signed[int32]()
 proc parse_i64: int64 = parse_signed[int64]()
 
+proc parse_f32: float32 =
+  var s: array[4, uint8]
+  for i in 0..3:
+    s[i] = b
+    next()
+  result = cast[float32](s)
+
+proc parse_f64: float32 =
+  var s: array[8, uint8]
+  for i in 0..7:
+    s[i] = b
+    next()
+  result = cast[float64](s)
+
 proc parseVector[T](parseElement: proc(): T): seq[T] =
   let size = parse_u32()
   for i in 1..size:
@@ -138,9 +152,9 @@ proc parseInstr: Instr =
   of i64_const:
     result.i64_val = parse_i64()
   of f32_const:
-    assert false # TODO
+    result.f32_val = parse_f32()
   of f64_const:
-    assert false # TODO
+    result.f64_val = parse_f64()
 
 proc parseExpression: Expr =
   while b != 0x0b:
